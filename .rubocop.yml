@@ -1,0 +1,19 @@
+inherit_from: .rubocop_todo.yml
+
+Style/Documentation:
+  Enabled: false
+
+Style/CaseEquality:
+  Enabled: false
+
+Style/SingleLineMethods:
+  Exclude:
+    - spec/spec_helper.rb
+
+Metrics/LineLength:
+  Max: 110
+
+Lint/HandleExceptions:
+  Exclude:
+    - rakelib/*.rake
+    - spec/spec_helper.rb
