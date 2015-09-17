@@ -51,18 +51,16 @@ RSpec.describe 'flow plugin' do
         plugin :flow
 
         route do |r|
-          r.on 'users', resolve: 'repositories.user' do |_user_repository|
+          r.on 'users', resolve: 'repositories.user' do |user_repository|
             r.is do
-              r.get to: 'controllers.users#index', inject: r
-              r.post to: 'controllers.users#create', inject: r
+              r.get to: 'controllers.users#index', inject: [r, user_repository]
+              r.post to: 'controllers.users#create', inject: [r, user_repository]
             end
           end
         end
 
         register('repositories.user') { UserRepository.new }
-        register('controllers.users') do
-          ->(r) { UsersController.method(:new).call(r, resolve('repositories.user')) }
-        end
+        register('controllers.users') { UsersController.method(:new).curry }
       end
     end
   end
