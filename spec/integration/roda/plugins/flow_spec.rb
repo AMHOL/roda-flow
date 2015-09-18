@@ -5,7 +5,7 @@ RSpec.describe 'flow plugin' do
     module Test
       User = Struct.new(:id, :name, :email)
 
-      class UserRepository
+      class Repository
         attr_accessor :data
 
         def initialize(data = {})
@@ -59,7 +59,7 @@ RSpec.describe 'flow plugin' do
           end
         end
 
-        register('repositories.user') { UserRepository.new }
+        register('repositories.user') { Repository.new }
         register('controllers.users') { UsersController.method(:new).curry }
       end
     end
