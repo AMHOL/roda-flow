@@ -65,7 +65,7 @@ RSpec.describe 'flow plugin' do
 
         def update(user_id, params)
           if (user = user_repository[user_id.to_i])
-            params = params.each_with_object(user.to_h) { |(k,v), h| h[k.to_sym] = v }
+            params = params.each_with_object(user.to_h) { |(k, v), h| h[k.to_sym] = v }
 
             if params.values.map(&:to_s).any?(&:empty?)
               response.status = 422
