@@ -52,7 +52,7 @@ RSpec.describe 'flow plugin' do
         end
 
         def create(params)
-          if params['name'].to_s.length > 0 && params['email'].to_s.length > 0
+          if !params.values.map(&:to_s).any?(&:empty?)
             response.status = 201
             user_repository.push(
               User.new(nil, *params.values_at('name', 'email'))
