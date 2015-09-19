@@ -11,7 +11,7 @@ end
 RSpec.configure do |config|
   config.disable_monkey_patching!
   config.include Rack::Test::Methods
-  config.include Module.new { def app; Test::Application.app; end }
+  config.include Module.new { def app; Test::App.app; end }
   config.after do
     Test.remove_constants
   end

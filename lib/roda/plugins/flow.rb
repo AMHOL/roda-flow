@@ -34,13 +34,18 @@ class Roda
 
           block = kwargs.fetch(:to, block)
           injections = kwargs.fetch(:inject, [])
+          method_injections = kwargs.fetch(:call_with, [])
 
           unless block.nil? || block.respond_to?(:call)
             block, method = block.to_s.split('#')
-            block = roda_class.resolve(block).call(*injections).method(method)
+            if method
+              block = roda_class.resolve(block).call(*injections).method(method)
+            else
+              block = roda_class.resolve(block).call(*injections)
+            end
           end
 
-          block_result(block.call(*(captures + resolutions)))
+          block_result(block.call(*(captures + resolutions + method_injections)))
           throw :halt, response.finish
         ensure
           @remaining_path = path

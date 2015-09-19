@@ -26,54 +26,78 @@ RSpec.describe 'flow plugin' do
       end
 
       class UsersController
-        attr_reader :request, :user_repository
+        attr_reader :response, :user_repository
 
-        def initialize(request, user_repository)
-          @request = request
+        def initialize(response, user_repository)
+          @response = response
           @user_repository = user_repository
         end
 
         def index
-          user_repository.all
+          user_repository.all.map(&:to_h)
         end
 
-        def create
+        def create(params)
+          response.status = 201
           user_repository.push(
             User.new(
-              user_repository.all.length.next, *request.params.values_at('name', 'email')
+              user_repository.all.length.next, *params.values_at('name', 'email')
             )
           ).to_h
         end
       end
 
-      class Application < Roda
+      class App < Roda
         plugin :json
         plugin :flow
 
         route do |r|
           r.on 'users', resolve: 'repositories.user' do |user_repository|
             r.is do
-              r.get to: 'controllers.users#index', inject: [r, user_repository]
-              r.post to: 'controllers.users#create', inject: [r, user_repository]
+              r.get to: 'controllers.users#index', inject: [response, user_repository]
+              r.post(
+                to: 'controllers.users#create',
+                inject: [response, user_repository],
+                call_with: [r.params]
+              )
             end
           end
         end
 
-        register('repositories.user') { Repository.new }
+        register('repositories.user', Repository.new)
         register('controllers.users') { |*args| UsersController.new(*args) }
       end
     end
   end
 
-  it 'works' do
-    get '/users', {}
+  describe '#index' do
+    let(:users) do
+      [
+        { id: 1, name: 'John', email: 'john@gotmail.com' },
+        { id: 2, name: 'Jill', email: 'jill@gotmail.com' }
+      ]
+    end
 
-    expect(last_response.body).to eq([].to_json)
+    before do
+      repo = Test::App.resolve('repositories.user')
+      users.each do |user_attributes|
+        repo.push(Test::User.new(*user_attributes.values))
+      end
+    end
+
+    it 'works' do
+      get '/users', {}
+
+      expect(last_response.body).to eq(users.to_json)
+    end
   end
 
-  it 'works' do
-    post '/users', name: 'John', email: 'john@hotmail.com'
+  describe '#create' do
+    it 'works' do
+      post '/users', name: 'John', email: 'john@gotmail.com'
 
-    expect(last_response.body).to eq({ id: 1, name: 'John', email: 'john@hotmail.com' }.to_json)
+      expect(last_response.status).to eq(201)
+      expect(last_response.body).to eq({ id: 1, name: 'John', email: 'john@gotmail.com' }.to_json)
+    end
   end
 end
