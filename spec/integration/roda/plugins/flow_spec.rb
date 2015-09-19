@@ -60,7 +60,7 @@ RSpec.describe 'flow plugin' do
         end
 
         register('repositories.user') { Repository.new }
-        register('controllers.users') { UsersController.method(:new).curry }
+        register('controllers.users') { |*args| UsersController.new(*args) }
       end
     end
   end
