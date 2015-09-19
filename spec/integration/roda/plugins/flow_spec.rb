@@ -52,14 +52,16 @@ RSpec.describe 'flow plugin' do
         end
 
         def create(params)
+          user = User.new(nil, *params.values_at('name', 'email'))
+
           if !params.values.map(&:to_s).any?(&:empty?)
             response.status = 201
             user_repository.push(
-              User.new(nil, *params.values_at('name', 'email'))
+              user
             ).to_h
           else
             response.status = 422
-            {}
+            user.to_h
           end
         end
 
@@ -172,11 +174,15 @@ RSpec.describe 'flow plugin' do
 
   describe '#create' do
     context 'with invalid params' do
-      it 'returns a 422 with an empty hash representation' do
+      it 'returns a 422 with an invalid user representation' do
         post '/users', name: '', email: 'john@gotmail.com'
 
         expect(last_response.status).to eq(422)
-        expect(last_response.body).to eq({}.to_json)
+        expect(last_response.body).to eq({
+          id: nil,
+          name: '',
+          email: 'john@gotmail.com'
+        }.to_json)
       end
     end
 
