@@ -16,7 +16,12 @@ RSpec.describe 'flow plugin' do
           data.values
         end
 
+        def [](id)
+          data[id]
+        end
+
         def push(obj)
+          obj.id = data.values.length.next
           data[obj.id] = obj
         end
 
@@ -37,17 +42,48 @@ RSpec.describe 'flow plugin' do
           user_repository.all.map(&:to_h)
         end
 
+        def show(user_id)
+          if (user = user_repository[user_id.to_i])
+            user.to_h
+          else
+            response.status = 404
+            {}
+          end
+        end
+
         def create(params)
-          response.status = 201
-          user_repository.push(
-            User.new(
-              user_repository.all.length.next, *params.values_at('name', 'email')
-            )
-          ).to_h
+          if params['name'].to_s.length > 0 && params['email'].to_s.length > 0
+            response.status = 201
+            user_repository.push(
+              User.new(nil, *params.values_at('name', 'email'))
+            ).to_h
+          else
+            response.status = 422
+            {}
+          end
+        end
+
+        def update(user_id, params)
+          if (user = user_repository[user_id.to_i])
+            params = params.each_with_object(user.to_h) { |(k,v), h| h[k.to_sym] = v }
+
+            if params.values.map(&:to_s).any?(&:empty?)
+              response.status = 422
+              params
+            else
+              user_repository.update(
+                User.new(*params.values)
+              ).to_h
+            end
+          else
+            response.status = 404
+            {}
+          end
         end
       end
 
       class App < Roda
+        plugin :all_verbs
         plugin :json
         plugin :flow
 
@@ -59,6 +95,19 @@ RSpec.describe 'flow plugin' do
                 to: 'controllers.users#create',
                 inject: [response, user_repository],
                 call_with: [r.params]
+              )
+            end
+
+            r.on :user_id do |user_id|
+              r.get(
+                to: 'controllers.users#show',
+                inject: [response, user_repository],
+                call_with: [user_id]
+              )
+              r.put(
+                to: 'controllers.users#update',
+                inject: [response, user_repository],
+                call_with: [user_id, r.params]
               )
             end
           end
@@ -85,19 +134,98 @@ RSpec.describe 'flow plugin' do
       end
     end
 
-    it 'works' do
+    it 'returns a 200 with users array representation' do
       get '/users', {}
 
+      expect(last_response.status).to eq(200)
       expect(last_response.body).to eq(users.to_json)
     end
   end
 
-  describe '#create' do
-    it 'works' do
-      post '/users', name: 'John', email: 'john@gotmail.com'
+  describe '#show' do
+    let(:user) do
+      { id: 1, name: 'John', email: 'john@gotmail.com' }
+    end
 
-      expect(last_response.status).to eq(201)
-      expect(last_response.body).to eq({ id: 1, name: 'John', email: 'john@gotmail.com' }.to_json)
+    before do
+      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+    end
+
+    context 'with invalid user_id' do
+      it 'returns a 404 with an empty hash representation' do
+        get '/users/2', {}
+
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to eq({}.to_json)
+      end
+    end
+
+    context 'with valid user_id' do
+      it 'returns a 200 with the user representation' do
+        get '/users/1', {}
+
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(user.to_json)
+      end
+    end
+  end
+
+  describe '#create' do
+    context 'with invalid params' do
+      it 'returns a 422 with an empty hash representation' do
+        post '/users', name: '', email: 'john@gotmail.com'
+
+        expect(last_response.status).to eq(422)
+        expect(last_response.body).to eq({}.to_json)
+      end
+    end
+
+    context 'with valid params' do
+      it 'returns a 201 with the user representation' do
+        post '/users', name: 'John', email: 'john@gotmail.com'
+
+        expect(last_response.status).to eq(201)
+        expect(last_response.body).to eq({ id: 1, name: 'John', email: 'john@gotmail.com' }.to_json)
+      end
+    end
+  end
+
+  describe '#update' do
+    let(:user) do
+      { id: 1, name: 'John', email: 'john@gotmail.com' }
+    end
+
+    before do
+      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+    end
+
+    context 'with invalid user_id' do
+      it 'returns a 404 with an empty hash representation' do
+        put '/users/2', name: 'John Smith'
+
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to eq({}.to_json)
+      end
+    end
+
+    context 'with valid user_id' do
+      context 'with invalid params' do
+        it 'returns a 422 with the invalid user representation' do
+          put '/users/1', name: ''
+
+          expect(last_response.status).to eq(422)
+          expect(last_response.body).to eq(user.update(name: '').to_json)
+        end
+      end
+
+      context 'with valid params' do
+        it 'returns a 200 with the user representation' do
+          put '/users/1', name: 'John Smith'
+
+          expect(last_response.status).to eq(200)
+          expect(last_response.body).to eq(user.update(name: 'John Smith').to_json)
+        end
+      end
     end
   end
 end
