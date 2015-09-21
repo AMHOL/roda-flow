@@ -28,6 +28,10 @@ RSpec.describe 'flow plugin' do
         def update(obj)
           data[obj.id] = obj
         end
+
+        def delete(obj)
+          data.delete(obj.id)
+        end
       end
 
       class App < Roda
@@ -56,6 +60,11 @@ RSpec.describe 'flow plugin' do
                 to: 'controllers.update_user',
                 inject: [response, user_repository],
                 call_with: [user_id, r.params]
+              )
+              r.delete(
+                to: 'controllers.destroy_user',
+                inject: [response, user_repository],
+                call_with: [user_id]
               )
             end
           end
@@ -107,6 +116,18 @@ RSpec.describe 'flow plugin' do
                     User.new(*params.values)
                   ).to_h
                 end
+              else
+                response.status = 404
+                {}
+              end
+            end
+          end
+
+          register('destroy_user') do |response, user_repository|
+            lambda do |user_id|
+              if (user = user_repository[user_id.to_i])
+                user_repository.delete(user)
+                {}
               else
                 response.status = 404
                 {}
@@ -228,6 +249,34 @@ RSpec.describe 'flow plugin' do
           expect(last_response.status).to eq(200)
           expect(last_response.body).to eq(user.update(name: 'John Smith').to_json)
         end
+      end
+    end
+  end
+
+  describe '#destroy' do
+    let(:user) do
+      { id: 1, name: 'John', email: 'john@gotmail.com' }
+    end
+
+    before do
+      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+    end
+
+    context 'with invalid user_id' do
+      it 'returns a 404 with an empty hash representation' do
+        delete '/users/2', {}
+
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to eq({}.to_json)
+      end
+    end
+
+    context 'with valid user_id' do
+      it 'returns a 200 with an empty hash representation' do
+        delete '/users/1', {}
+
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq({}.to_json)
       end
     end
   end
