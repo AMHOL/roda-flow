@@ -40,32 +40,34 @@ RSpec.describe 'flow plugin' do
         plugin :flow
 
         route do |r|
-          r.on 'users', resolve: 'repositories.user' do |user_repository|
-            r.is do
-              r.get to: 'controllers.index_users', inject: [user_repository]
-              r.post(
-                to: 'controllers.create_user',
-                inject: [response, user_repository],
-                call_with: [r.params]
-              )
-            end
+          r.on 'users' do
+            r.resolve 'repositories.user' do |user_repository|
+              r.is do
+                r.get to: 'controllers.index_users', inject: [user_repository]
+                r.post(
+                  to: 'controllers.create_user',
+                  inject: [response, user_repository],
+                  call_with: [r.params]
+                )
+              end
 
-            r.on :user_id do |user_id|
-              r.get(
-                to: 'controllers.show_user',
-                inject: [response, user_repository],
-                call_with: [user_id]
-              )
-              r.put(
-                to: 'controllers.update_user',
-                inject: [response, user_repository],
-                call_with: [user_id, r.params]
-              )
-              r.delete(
-                to: 'controllers.destroy_user',
-                inject: [response, user_repository],
-                call_with: [user_id]
-              )
+              r.on :user_id do |user_id|
+                r.get(
+                  to: 'controllers.show_user',
+                  inject: [response, user_repository],
+                  call_with: [user_id]
+                )
+                r.put(
+                  to: 'controllers.update_user',
+                  inject: [response, user_repository],
+                  call_with: [user_id, r.params]
+                )
+                r.delete(
+                  to: 'controllers.destroy_user',
+                  inject: [response, user_repository],
+                  call_with: [user_id]
+                )
+              end
             end
           end
         end

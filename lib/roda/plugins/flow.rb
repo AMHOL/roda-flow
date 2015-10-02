@@ -6,49 +6,65 @@ class Roda
       end
 
       module RequestMethods
-        def if_match(args, &block)
+        def resolve(*args, &block)
+          on(resolve: args, &block)
+        end
+
+        private
+
+        def match_resolve(resolve)
+          Array(resolve).flatten.each do |key|
+            @captures << roda_class.resolve(key)
+          end
+        end
+
+        def match_to(to)
+          container_key, @block_method = to.to_s.split('#')
+          @block_arg = roda_class.resolve(container_key)
+        end
+
+        def match_inject(inject)
+          @block_arg = @block_arg.call(*inject) if @block_arg
+        end
+
+        def match_call_with(call_with)
+          @captures.concat(call_with)
+        end
+
+        def if_match(*args, &block)
           path = @remaining_path
           # For every block, we make sure to reset captures so that
           # nesting matchers won't mess with each other's captures.
           @captures.clear
 
-          kwargs = {}
-
-          if args.last === Base::RequestMethods::TERM && args.first.is_a?(::Hash)
-            kwargs = args.shift
-          end
-
-          kwargs = args.pop if args.last.is_a?(::Hash)
-
           return unless match_all(args)
-
-          container_keys = Array(kwargs.fetch(:resolve, []))
-
-          resolutions = container_keys.map do |resolution|
-            if resolution.respond_to?(:call)
-              resoltion.call(captures)
-            else
-              roda_class.resolve(resolution)
-            end
-          end
-
-          block = kwargs.fetch(:to, block)
-          injections = kwargs.fetch(:inject, [])
-          method_injections = kwargs.fetch(:call_with, [])
-
-          unless block.nil? || block.respond_to?(:call)
-            block, method = block.to_s.split('#')
-            if method
-              block = roda_class.resolve(block).call(*injections).method(method)
-            else
-              block = roda_class.resolve(block).call(*injections)
-            end
-          end
-
-          block_result(block.call(*(captures + resolutions + method_injections)))
+          block_result(get_block(&block).call(*captures))
           throw :halt, response.finish
         ensure
           @remaining_path = path
+        end
+
+        def always(&block)
+          super(&get_block(&block))
+        end
+
+        def get_block(&block)
+          if block_given?
+            block
+          elsif @block_arg
+            if @block_method
+              block_arg = @block_arg.method(@block_method)
+            else
+              block_arg = @block_arg
+            end
+            clear_block_args
+            block_arg
+          end
+        end
+
+        def clear_block_args
+          @block_arg = nil
+          @block_method = nil
         end
       end
     end

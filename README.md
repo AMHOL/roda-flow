@@ -103,33 +103,35 @@ class App < Roda
   plugin :flow
 
   route do |r|
-    r.on 'users', resolve: 'repositories.user' do |user_repository|
-      r.is do
-        r.get to: 'controllers.users#index', inject: [response, user_repository]
-        r.post(
-          to: 'controllers.users#create',
-          inject: [response, user_repository],
-          call_with: [r.params]
-        )
-      end
+    r.on 'users' do
+      r.resolve 'repositories.user' do |user_repository| do
+        r.is do
+          r.get to: 'controllers.users#index', inject: [response, user_repository]
+          r.post(
+            to: 'controllers.users#create',
+            inject: [response, user_repository],
+            call_with: [r.params]
+          )
+        end
 
-      r.on :user_id do |user_id|
-        r.get(
-          to: 'controllers.users#show',
-          inject: [response, user_repository],
-          call_with: [user_id]
-        )
-        r.put(
-          to: 'controllers.users#update',
-          inject: [response, user_repository],
-          call_with: [user_id, r.params]
-        )
-        r.delete(
-          # to: can also be a registered proc, just omit the "#" and method name
-          to: 'controllers.users#destroy',
-          inject: [response, user_repository],
-          call_with: [user_id]
-        )
+        r.on :user_id do |user_id|
+          r.get(
+            to: 'controllers.users#show',
+            inject: [response, user_repository],
+            call_with: [user_id]
+          )
+          r.put(
+            to: 'controllers.users#update',
+            inject: [response, user_repository],
+            call_with: [user_id, r.params]
+          )
+          r.delete(
+            # to: can also be a registered proc, just omit the "#" and method name
+            to: 'controllers.users#destroy',
+            inject: [response, user_repository],
+            call_with: [user_id]
+          )
+        end
       end
     end
   end
