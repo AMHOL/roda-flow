@@ -37,6 +37,7 @@ RSpec.describe 'flow plugin' do
       class App < Roda
         plugin :all_verbs
         plugin :json
+        plugin :container
         plugin :flow
 
         route do |r|
