@@ -6,7 +6,7 @@ Resolve objects from an IoC container within the flow of your Roda routes.
 
 Your Roda application class must respond to the `#resolve(container_key)` method and return the object matching the container key.
 
-You can implement this method yourself, with your own container, or you can use the [roda-container](https://github.com/AMHOL/roda-container) plugin to turn your Roda app into a [dry-container](https://github.com/AMHOL/roda-container) and offer the `#resolve` method for you.
+You can implement this method yourself, with your own container, or you can use the [roda-container](https://github.com/AMHOL/roda-container) plugin to turn your Roda app into a [dry-container](https://github.com/dry-rb/dry-container) and offer the `#resolve` method for you.
 
 ## Example
 
