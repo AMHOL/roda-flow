@@ -1,10 +1,6 @@
 class Roda
   module RodaPlugins
     module Flow
-      def self.load_dependencies(app, _opts = nil)
-        app.plugin :container
-      end
-
       module RequestMethods
         def resolve(*args, &block)
           on(resolve: args, &block)
