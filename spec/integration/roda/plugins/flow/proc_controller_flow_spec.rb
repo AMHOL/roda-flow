@@ -1,39 +1,11 @@
 require 'spec_helper'
+require 'support/test_repository'
+require 'support/register_lambdas'
+require 'support/test_user'
 
 RSpec.describe 'flow plugin' do
   before do
     module Test
-      User = Struct.new(:id, :name, :email)
-
-      class Repository
-        attr_accessor :data
-
-        def initialize(data = {})
-          self.data = data
-        end
-
-        def all
-          data.values
-        end
-
-        def [](id)
-          data[id]
-        end
-
-        def push(obj)
-          obj.id = data.values.length.next
-          data[obj.id] = obj
-        end
-
-        def update(obj)
-          data[obj.id] = obj
-        end
-
-        def delete(obj)
-          data.delete(obj.id)
-        end
-      end
-
       class App < Roda
         plugin :all_verbs
         plugin :json
@@ -73,70 +45,9 @@ RSpec.describe 'flow plugin' do
           end
         end
 
-        register('repositories.user', Repository.new)
+        register('repositories.user', ::TestRepository.new)
         namespace('controllers') do
-          register('index_users') do |user_repository|
-            -> { user_repository.all.map(&:to_h) }
-          end
-
-          register('show_user') do |response, user_repository|
-            lambda do |user_id|
-              if (user = user_repository[user_id.to_i])
-                user.to_h
-              else
-                response.status = 404
-                {}
-              end
-            end
-          end
-
-          register('create_user') do |response, user_repository|
-            lambda do |params|
-              user = User.new(nil, *params.values_at('name', 'email'))
-
-              if !params.values.map(&:to_s).any?(&:empty?)
-                response.status = 201
-                user_repository.push(
-                  user
-                ).to_h
-              else
-                response.status = 422
-                user.to_h
-              end
-            end
-          end
-
-          register('update_user') do |response, user_repository|
-            lambda do |user_id, params|
-              if (user = user_repository[user_id.to_i])
-                params = params.each_with_object(user.to_h) { |(k, v), h| h[k.to_sym] = v }
-
-                if params.values.map(&:to_s).any?(&:empty?)
-                  response.status = 422
-                  params
-                else
-                  user_repository.update(
-                    User.new(*params.values)
-                  ).to_h
-                end
-              else
-                response.status = 404
-                {}
-              end
-            end
-          end
-
-          register('destroy_user') do |response, user_repository|
-            lambda do |user_id|
-              if (user = user_repository[user_id.to_i])
-                user_repository.delete(user)
-                {}
-              else
-                response.status = 404
-                {}
-              end
-            end
-          end
+          RegisterLambdas.run(self)
         end
       end
     end
@@ -153,7 +64,7 @@ RSpec.describe 'flow plugin' do
     before do
       repo = Test::App.resolve('repositories.user')
       users.each do |user_attributes|
-        repo.push(Test::User.new(*user_attributes.values))
+        repo.push(::User.new(*user_attributes.values))
       end
     end
 
@@ -171,7 +82,7 @@ RSpec.describe 'flow plugin' do
     end
 
     before do
-      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+      Test::App.resolve('repositories.user').push(::User.new(*user.values))
     end
 
     context 'with invalid user_id' do
@@ -223,7 +134,7 @@ RSpec.describe 'flow plugin' do
     end
 
     before do
-      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+      Test::App.resolve('repositories.user').push(::User.new(*user.values))
     end
 
     context 'with invalid user_id' do
@@ -262,7 +173,7 @@ RSpec.describe 'flow plugin' do
     end
 
     before do
-      Test::App.resolve('repositories.user').push(Test::User.new(*user.values))
+      Test::App.resolve('repositories.user').push(::User.new(*user.values))
     end
 
     context 'with invalid user_id' do
