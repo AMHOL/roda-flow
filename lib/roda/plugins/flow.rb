@@ -1,6 +1,26 @@
 class Roda
   module RodaPlugins
     module Flow
+
+      KEY = 'flow.defaults'.freeze
+
+      module InstanceMethods
+        def flow_defaults(args = {}, &block)
+          if block_given?
+            defaults.merge!(args)
+            yield
+          else
+            raise RodaError "must pass a block when using flow defaults"
+          end
+        end
+
+        private
+        def defaults
+          env[KEY] ||= {}
+        end
+
+      end
+
       module RequestMethods
         def resolve(*args, &block)
           on(resolve: args, &block)
@@ -20,7 +40,7 @@ class Roda
         end
 
         def match_inject(inject)
-          @block_arg = @block_arg.call(*inject) if @block_arg
+          @block_arg = @block_arg.call(*inject)
         end
 
         def match_call_with(call_with)
@@ -62,7 +82,31 @@ class Roda
           @block_arg = nil
           @block_method = nil
         end
+
+        def _match_hash(hash)
+          if hash.keys.include?(:to)
+            hash = merge_defaults(hash)
+          end
+          super(hash)
+        end
+
+        def merge_defaults(hash)
+            hash = defaults.merge(hash)
+            hash = hash.delete_if{|k,v| v == false}
+            # Order matters...
+            sorted = %i[to inject call_with].inject({}) do |retval, key|
+              retval[key] = hash[key] if hash[key]
+              retval
+            end
+            return sorted
+        end
+
+        def defaults
+          env[KEY] || {}
+        end
+
       end
+
     end
 
     register_plugin(:flow, Flow)
