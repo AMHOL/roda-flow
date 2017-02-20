@@ -2,17 +2,11 @@ class Roda
   module RodaPlugins
     module Flow
       module RequestMethods
-        def resolve(*args, &block)
-          on(resolve: args, &block)
+        def resolve(*keys)
+          yield *keys.map { |key| roda_class.resolve(key) }
         end
 
         private
-
-        def match_resolve(resolve)
-          Array(resolve).flatten.each do |key|
-            @captures << roda_class.resolve(key)
-          end
-        end
 
         def match_to(to)
           container_key, @block_method = to.to_s.split('#')
