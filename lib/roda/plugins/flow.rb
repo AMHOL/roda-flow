@@ -21,17 +21,19 @@ class Roda
           @captures.concat(call_with)
         end
 
-        def if_match(*args, &block)
+        def if_match(args, &block)
           path = @remaining_path
           # For every block, we make sure to reset captures so that
           # nesting matchers won't mess with each other's captures.
           @captures.clear
 
-          return unless match_all(args)
-          block_result(get_block(&block).call(*captures))
-          throw :halt, response.finish
-        ensure
-          @remaining_path = path
+          if match_all(args)
+            block_result(get_block(&block).call(*captures))
+            throw :halt, response.finish
+          else
+            @remaining_path = path
+            false
+          end
         end
 
         def always(&block)

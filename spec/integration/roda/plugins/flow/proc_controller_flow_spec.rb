@@ -41,6 +41,10 @@ RSpec.describe 'flow plugin' do
         plugin :flow
 
         route do |r|
+          r.get 'ping' do
+            'pong'
+          end
+
           r.on 'users' do
             r.resolve 'repositories.user' do |user_repository|
               r.is do
@@ -142,7 +146,28 @@ RSpec.describe 'flow plugin' do
     end
   end
 
-  describe '#index' do
+  describe 'GET /ping' do
+    it 'does not match a trailing slash' do
+      get '/ping/', {}
+
+      expect(last_response.status).to eq(404)
+    end
+
+    it 'does not match a trailing wildcard route' do
+      get '/ping/2', {}
+
+      expect(last_response.status).to eq(404)
+    end
+
+    it 'matches /ping' do
+      get '/ping', {}
+
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to eq('pong')
+    end
+  end
+
+  describe 'GET /users' do
     let(:users) do
       [
         { id: 1, name: 'John', email: 'john@gotmail.com' },
@@ -165,7 +190,7 @@ RSpec.describe 'flow plugin' do
     end
   end
 
-  describe '#show' do
+  describe 'GET /users/:user_id' do
     let(:user) do
       { id: 1, name: 'John', email: 'john@gotmail.com' }
     end
@@ -193,7 +218,7 @@ RSpec.describe 'flow plugin' do
     end
   end
 
-  describe '#create' do
+  describe 'POST /users' do
     context 'with invalid params' do
       it 'returns a 422 with an invalid user representation' do
         post '/users', name: '', email: 'john@gotmail.com'
@@ -217,7 +242,7 @@ RSpec.describe 'flow plugin' do
     end
   end
 
-  describe '#update' do
+  describe 'PUT /users/:user_id' do
     let(:user) do
       { id: 1, name: 'John', email: 'john@gotmail.com' }
     end
@@ -256,7 +281,7 @@ RSpec.describe 'flow plugin' do
     end
   end
 
-  describe '#destroy' do
+  describe 'DELETE /users/:user_id' do
     let(:user) do
       { id: 1, name: 'John', email: 'john@gotmail.com' }
     end
