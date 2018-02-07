@@ -1,7 +1,7 @@
 # coding: utf-8
 Gem::Specification.new do |spec|
   spec.name         = 'roda-flow'
-  spec.version      = '0.3.1'
+  spec.version      = '0.4.0'
   spec.authors      = ['Andy Holland']
   spec.email        = ['andyholland1991@aol.com']
 
