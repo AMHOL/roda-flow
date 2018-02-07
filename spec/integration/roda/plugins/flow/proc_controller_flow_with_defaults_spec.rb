@@ -15,6 +15,10 @@ RSpec.describe 'flow plugin with defaults' do
         plugin :flow
 
         route do |r|
+          r.get 'ping' do
+            'pong'
+          end
+
           r.on 'defaults' do
             r.on 'users' do
               r.resolve 'repositories.user' do |user_repository|
@@ -47,6 +51,27 @@ RSpec.describe 'flow plugin with defaults' do
           RegisterLambdas.run(self)
         end
       end
+    end
+  end
+
+  describe 'GET /ping' do
+    it 'does not match a trailing slash' do
+      get '/ping/', {}
+
+      expect(last_response.status).to eq(404)
+    end
+
+    it 'does not match a trailing wildcard route' do
+      get '/ping/2', {}
+
+      expect(last_response.status).to eq(404)
+    end
+
+    it 'matches /ping' do
+      get '/ping', {}
+
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to eq('pong')
     end
   end
 

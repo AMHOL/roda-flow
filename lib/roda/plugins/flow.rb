@@ -10,15 +10,15 @@ class Roda
             defaults.merge!(args)
             yield
           else
-            raise RodaError "must pass a block when using flow defaults"
+            raise RodaError 'must pass a block when using flow defaults'
           end
         end
 
         private
+
         def defaults
           env[KEY] ||= {}
         end
-
       end
 
       module RequestMethods
@@ -40,6 +40,7 @@ class Roda
         def match_call_with(call_with)
           @captures.concat(call_with)
         end
+
 
         def if_match(args, &block)
           path = @remaining_path
@@ -83,18 +84,21 @@ class Roda
           if hash.keys.include?(:to)
             hash = merge_defaults(hash)
           end
+
           super(hash)
         end
 
         def merge_defaults(hash)
-            hash = defaults.merge(hash)
-            hash = hash.delete_if{|k,v| v == false}
-            # Order matters...
-            sorted = %i[to inject call_with].inject({}) do |retval, key|
-              retval[key] = hash[key] if hash[key]
-              retval
-            end
-            return sorted
+          hash = defaults.merge(hash)
+          hash = hash.delete_if { |k,v| v == false }
+
+          # Order matters...
+          sorted = %i[to inject call_with].inject({}) do |retval, key|
+            retval[key] = hash[key] if hash[key]
+            retval
+          end
+
+          sorted
         end
 
         def defaults
