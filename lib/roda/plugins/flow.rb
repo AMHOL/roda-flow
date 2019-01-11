@@ -49,7 +49,7 @@ class Roda
           @captures.clear
 
           if match_all(args)
-            block_result(get_block(&block).call(*captures))
+            block_result(get_block(&block).call(*captures).to_s)
             throw :halt, response.finish
           else
             @remaining_path = path
